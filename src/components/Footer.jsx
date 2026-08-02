@@ -12,7 +12,7 @@ import {
 
 export default function Footer({ onOpenPolicy }) {
   return (
-    <footer className="bg-[#121212] text-gray-300 border-t border-[#262626] pt-12 pb-16">
+    <footer className="bg-black text-gray-300 border-t border-gray-800 pt-12 pb-16">
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         
         {/* Column 1: Logo & About */}

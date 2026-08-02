@@ -15,10 +15,10 @@ export default function FloatingContact() {
         {/* Call Button */}
         <a
           href={`tel:${STORE_INFO.phone}`}
-          className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-slate-900 text-white rounded-full border-2 border-white shadow-xl hover:scale-110 transition duration-300"
+          className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-black text-white rounded-full border-2 border-white shadow-xl hover:scale-110 transition duration-300"
           title="Call Umar Khan"
         >
-          <Phone className="w-6 h-6" />
+          <Phone className="w-5 h-5 md:w-6 md:h-6" />
         </a>
 
         {/* WhatsApp Button */}
@@ -26,10 +26,10 @@ export default function FloatingContact() {
           href={whatsappUrl}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-emerald-600 text-white rounded-full border-2 border-white shadow-2xl hover:scale-110 transition duration-300 relative"
+          className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-black text-white rounded-full border-2 border-white shadow-xl hover:scale-110 transition duration-300 relative"
           title="WhatsApp Inquiry"
         >
-          <MessageSquare className="w-6 h-6 fill-current" />
+          <MessageSquare className="w-5 h-5 md:w-6 md:h-6 fill-current" />
           <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>

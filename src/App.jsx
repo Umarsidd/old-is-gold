@@ -140,6 +140,7 @@ export default function App() {
         cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
         onOpenCart={handleOpenCart}
         onOpenAuth={() => setActiveTab('auth')}
+        products={products}
       />
 
       {/* Main View Router */}

@@ -12,6 +12,7 @@ import {
   Smartphone,
   Layers
 } from 'lucide-react';
+import MegaMenu from './MegaMenu';
 
 export default function Header({ 
   searchQuery, 
@@ -21,7 +22,8 @@ export default function Header({
   activeTab, 
   setActiveTab,
   user,
-  onOpenAuth
+  onOpenAuth,
+  products = []
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
@@ -47,7 +49,7 @@ export default function Header({
   )}`;
 
   return (
-    <header className="sticky top-0 z-50 flex flex-col w-full">
+    <header className="sticky top-0 z-50 flex flex-col w-full" style={{ position: 'sticky', top: 0 }}>
       
       {/* Top Ribbon - 36px Height, Solid Background */}
       <div 
@@ -87,7 +89,7 @@ export default function Header({
       </div>
 
       {/* Main Navbar - 80px Height, Glass effect, bottom border */}
-      <div className={`w-full border-b border-[#E5E7EB] transition-all duration-300 relative z-40 ${scrolled ? 'solid-nav' : 'glass-nav'}`} style={{ height: '80px' }}>
+      <div className={`w-full border-b border-[#E5E7EB] transition-all duration-300 relative z-40 ${scrolled ? 'solid-nav' : 'glass-nav'}`} style={{ height: '80px', overflow: 'visible' }}>
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between gap-4">
           
           {/* Logo Container */}
@@ -157,55 +159,15 @@ export default function Header({
                   color: '#111827', 
                   fontWeight: 600, 
                   fontSize: '15px',
-                  borderBottom: '2px solid transparent'
+                  borderBottom: categoryDropdownOpen ? '2px solid #16A34A' : '2px solid transparent'
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#16A34A'; }}
                 onMouseLeave={(e) => { if(!categoryDropdownOpen) e.currentTarget.style.color = '#111827'; }}
               >
                 <Layers className="w-4 h-4" />
-                <span>Categories & Brands</span>
-                <ChevronDown className="w-4 h-4" />
+                <span>Mega Menu</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
-
-              {/* Dropdown Menu - White Background, Shadow XL, Rounded 16px */}
-              {categoryDropdownOpen && (
-                <div className="absolute top-[70px] left-0 mt-2 w-64 bg-white rounded-[16px] shadow-xl border border-gray-100 p-2 z-50">
-                  <div className="px-3 py-2 border-b border-gray-100 mb-1">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Select Mobile Brand</span>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      onSelectBrand('All');
-                      setCategoryDropdownOpen(false);
-                      if (activeTab !== 'shop') setActiveTab('shop');
-                    }}
-                    className="w-full text-left px-3 py-2.5 text-[15px] rounded-xl transition flex items-center gap-2 text-[#111827] hover:bg-[#F3F4F6]"
-                    style={{ fontWeight: selectedBrand === 'All' ? 700 : 600 }}
-                  >
-                    <Smartphone className="w-4 h-4 text-gray-400" />
-                    <span>All Mobile Inventory</span>
-                  </button>
-
-                  <div className="max-h-60 overflow-y-auto space-y-0.5 pr-1 mt-1">
-                    {BRANDS_LIST.filter(b => b !== 'All Brands').map((brand) => (
-                      <button
-                        key={brand}
-                        onClick={() => {
-                          onSelectBrand(brand);
-                          setCategoryDropdownOpen(false);
-                          if (activeTab !== 'shop') setActiveTab('shop');
-                        }}
-                        className="w-full text-left px-3 py-2 text-[15px] rounded-xl transition flex items-center justify-between text-[#111827] hover:bg-[#F3F4F6]"
-                        style={{ fontWeight: selectedBrand === brand ? 700 : 600 }}
-                      >
-                        <span>{brand}</span>
-                        {selectedBrand === brand && <div className="w-1.5 h-1.5 rounded-full bg-[#16A34A]"></div>}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             <button 
@@ -310,7 +272,7 @@ export default function Header({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-gray-200 p-4 space-y-4 shadow-xl relative z-50">
+        <div className="lg:hidden bg-white border-b border-gray-200 p-4 space-y-4 shadow-xl relative z-50 overflow-y-auto max-h-[85vh]">
           <div className="relative">
             <input
               type="text"
@@ -335,12 +297,42 @@ export default function Header({
 
           <div className="space-y-1" style={{ fontSize: '15px', fontWeight: 600, color: '#111827' }}>
             <button onClick={() => handleNavClick('home')} className="w-full text-left p-3 rounded-xl hover:bg-gray-100">Store</button>
-            <button onClick={() => handleNavClick('shop')} className="w-full text-left p-3 rounded-xl hover:bg-gray-100">Catalog & Brands</button>
+            
+            <button 
+              onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)} 
+              className="w-full text-left p-3 rounded-xl hover:bg-gray-100 flex items-center justify-between"
+            >
+              <span>Catalog & Brands</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${categoryDropdownOpen ? 'rotate-180 text-green-600' : ''}`} />
+            </button>
+            
+            {categoryDropdownOpen && (
+              <div className="mt-2 mb-4 bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+                <MegaMenu 
+                  isOpen={true} 
+                  onClose={() => setMobileMenuOpen(false)} 
+                  products={products}
+                  onSelectBrand={(brand) => { onSelectBrand(brand); handleNavClick('shop'); }}
+                  onSelectModel={(model) => { onSelectBrand(model.brand); handleNavClick('shop'); }}
+                  isMobile={true}
+                />
+              </div>
+            )}
+
             <button onClick={() => handleNavClick('contact')} className="w-full text-left p-3 rounded-xl hover:bg-gray-100">Contact & Location</button>
             <button onClick={() => { onOpenAuth(); setMobileMenuOpen(false); }} className="w-full text-left p-3 rounded-xl hover:bg-gray-100" style={{ color: '#16A34A' }}>Admin Panel</button>
           </div>
         </div>
       )}
+
+      {/* Desktop Mega Menu Overlay */}
+      <MegaMenu 
+        isOpen={categoryDropdownOpen && !mobileMenuOpen} 
+        onClose={() => setCategoryDropdownOpen(false)}
+        products={products}
+        onSelectBrand={(brand) => { onSelectBrand(brand); handleNavClick('shop'); }}
+        onSelectModel={(model) => { onSelectBrand(model.brand); handleNavClick('shop'); }}
+      />
     </header>
   );
 }
