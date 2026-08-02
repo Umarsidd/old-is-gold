@@ -32,7 +32,7 @@ export default function HomePage({
   const latestMobiles = products.filter(p => !p.isHidden).slice(0, 8);
 
   const directWhatsappUrl = `https://wa.me/${STORE_INFO.whatsappNumber}?text=${encodeURIComponent(
-    `Hello Mobile Hub, I would like to inquire about available phone stock.`
+    `Hello OLD IS GOLD, I would like to inquire about available phone stock.`
   )}`;
 
   const faqs = [
@@ -42,7 +42,7 @@ export default function HomePage({
     },
     {
       q: "Is online payment or credit card required?",
-      a: "No! Mobile Hub is an exclusive inventory catalog. There is no online cart or payment gateway required. All inquiries are handled directly on WhatsApp."
+      a: "No! OLD IS GOLD is an exclusive inventory catalog. There is no online cart or payment gateway required. All inquiries are handled directly on WhatsApp."
     },
     {
       q: "Are all phones physically tested?",
@@ -169,7 +169,7 @@ export default function HomePage({
         <div className="max-w-7xl mx-auto px-4 space-y-8">
           <div className="text-center space-y-2 max-w-xl mx-auto">
             <span className="text-[10px] font-black text-[#16A34A] uppercase tracking-widest">Our Store Standards</span>
-            <h2 className="text-2xl md:text-3xl font-black text-black">Why Choose Mobile Hub?</h2>
+            <h2 className="text-2xl md:text-3xl font-black text-black">Why Choose OLD IS GOLD?</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -295,7 +295,7 @@ export default function HomePage({
 
           <div className="w-full h-72 rounded-xl overflow-hidden border border-gray-300">
             <iframe
-              title="Mobile Hub Store Location Google Map"
+              title="OLD IS GOLD Store Location Google Map"
               src={STORE_INFO.googleMapsEmbedUrl}
               width="100%"
               height="100%"

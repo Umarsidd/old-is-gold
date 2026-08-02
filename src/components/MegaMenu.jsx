@@ -81,7 +81,8 @@ export default function MegaMenu({
   products, 
   onSelectBrand, 
   onSelectModel,
-  isMobile = false 
+  isMobile = false,
+  topOffset = 116
 }) {
   const [activeBrand, setActiveBrand] = useState(null);
   const [activeSeries, setActiveSeries] = useState(null);
@@ -224,16 +225,45 @@ export default function MegaMenu({
     );
   }
 
-  // Desktop 3-Column Mega Menu
+  // Desktop 3-Column Mega Menu — uses fixed positioning so it never overflows the viewport at any zoom
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.98 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="absolute top-full mt-4 bg-white shadow-2xl rounded-[20px] border border-gray-200 overflow-hidden z-50 flex flex-col"
-      style={{ height: '500px', left: '50%', transform: 'translateX(-50%)', width: 'calc(100vw - 2rem)', maxWidth: '1280px' }}
-    >
+    <>
+      {/* Backdrop click to close */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0,
+          zIndex: 49,
+          background: 'rgba(0,0,0,0.08)'
+        }}
+      />
+      <motion.div 
+        initial={{ opacity: 0, y: -8, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        style={{
+          position: 'fixed',
+          top: `${topOffset + 8}px`,
+          left: '16px',
+          right: '16px',
+          maxWidth: '860px',
+          margin: '0 auto',
+          height: '420px',
+          background: '#ffffff',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          borderRadius: '20px',
+          border: '1px solid #e5e7eb',
+          overflow: 'hidden',
+          zIndex: 50,
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
       {/* Top Search Bar */}
       <div className="p-4 border-b border-gray-200 bg-gray-50/50">
         <div className="relative max-w-xl mx-auto">
@@ -414,5 +444,6 @@ export default function MegaMenu({
 
       </div>
     </motion.div>
+    </>
   );
 }

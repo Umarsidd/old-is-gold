@@ -76,7 +76,7 @@ export default function ContactPage() {
             margin: '0 0 16px'
           }}>
             Get In Touch With<br />
-            <span style={{ color: '#16A34A' }}>Mobile Hub</span>
+            <span style={{ color: '#16A34A' }}>OLD IS GOLD</span>
           </h1>
 
           <p style={{
@@ -258,7 +258,7 @@ export default function ContactPage() {
               </div>
               <div style={{ width: '100%', height: '220px' }}>
                 <iframe
-                  title="Mobile Hub Store Location"
+                  title="OLD IS GOLD Store Location"
                   src={STORE_INFO.googleMapsEmbedUrl}
                   width="100%"
                   height="100%"

@@ -4,7 +4,7 @@ import { MessageSquare, Phone } from 'lucide-react';
 
 export default function FloatingContact() {
   const whatsappUrl = `https://wa.me/${STORE_INFO.whatsappNumber}?text=${encodeURIComponent(
-    `Hello, I am interested in inquiring about mobile phone prices at Mobile Hub.`
+    `Hello, I am interested in inquiring about mobile phone prices at OLD IS GOLD.`
   )}`;
 
   return (
