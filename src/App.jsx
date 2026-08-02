@@ -18,106 +18,40 @@ export default function App() {
   // Products State with LocalStorage persistence
   const [products, setProducts] = useState(() => {
     try {
-      const saved = localStorage.getItem('old_is_gold_products');
+      const saved = localStorage.getItem('mobile_hub_products');
       return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
     } catch {
       return INITIAL_PRODUCTS;
     }
   });
 
-  // Cart State with LocalStorage persistence
-  const [cart, setCart] = useState(() => {
-    try {
-      const saved = localStorage.getItem('old_is_gold_cart');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Wishlist State with LocalStorage persistence
-  const [wishlist, setWishlist] = useState(() => {
-    try {
-      const saved = localStorage.getItem('old_is_gold_wishlist');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Navigation & View States
+  // Navigation & Filter States
   const [activeTab, setActiveTab] = useState('home');
+  const [selectedBrand, setSelectedBrand] = useState('All');
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [lastOrderData, setLastOrderData] = useState(null);
   const [user, setUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [cartOpen, setCartOpen] = useState(false);
   const [activePolicy, setActivePolicy] = useState(null);
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mobile_hub_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [orderData, setOrderData] = useState(null);
 
-  // Sync products to LocalStorage on change
+  // Sync products and cart to LocalStorage on change
   useEffect(() => {
     try {
-      localStorage.setItem('old_is_gold_products', JSON.stringify(products));
+      localStorage.setItem('mobile_hub_products', JSON.stringify(products));
+      localStorage.setItem('mobile_hub_cart', JSON.stringify(cartItems));
     } catch (e) {
       console.error("Products sync error", e);
     }
-  }, [products]);
-
-  // Sync cart to LocalStorage on change
-  useEffect(() => {
-    try {
-      localStorage.setItem('old_is_gold_cart', JSON.stringify(cart));
-    } catch (e) {
-      console.error("Cart sync error", e);
-    }
-  }, [cart]);
-
-  // Sync wishlist to LocalStorage on change
-  useEffect(() => {
-    try {
-      localStorage.setItem('old_is_gold_wishlist', JSON.stringify(wishlist));
-    } catch (e) {
-      console.error("Wishlist sync error", e);
-    }
-  }, [wishlist]);
-
-  // Handlers for Cart
-  const handleAddToCart = (productToAdd) => {
-    setCart((prevCart) => {
-      const existing = prevCart.find((item) => item.id === productToAdd.id);
-      const qtyToAdd = productToAdd.quantity || 1;
-      if (existing) {
-        return prevCart.map((item) =>
-          item.id === productToAdd.id
-            ? { ...item, quantity: item.quantity + qtyToAdd }
-            : item
-        );
-      }
-      return [...prevCart, { ...productToAdd, quantity: qtyToAdd }];
-    });
-    setCartOpen(true);
-  };
-
-  const handleUpdateCartQty = (id, newQty) => {
-    if (newQty <= 0) {
-      handleRemoveCartItem(id);
-      return;
-    }
-    setCart((prev) => prev.map((item) => (item.id === id ? { ...item, quantity: newQty } : item)));
-  };
-
-  const handleRemoveCartItem = (id) => {
-    setCart((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  // Handlers for Wishlist
-  const handleToggleWishlist = (product) => {
-    setWishlist((prev) => {
-      const exists = prev.some((item) => item.id === product.id);
-      if (exists) return prev.filter((item) => item.id !== product.id);
-      return [...prev, product];
-    });
-  };
+  }, [products, cartItems]);
 
   // Handlers for Admin Product CRUD
   const handleAddProduct = (newProduct) => {
@@ -134,6 +68,56 @@ export default function App() {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
+  const handleAddToCart = (product, quantity = 1) => {
+    setCartItems((prev) => {
+      const existingItem = prev.find((item) => item.id === product.id);
+      const desiredQty = Math.min(quantity, product.stock || 1);
+      if (existingItem) {
+        return prev.map((item) =>
+          item.id === product.id
+            ? { ...item, quantity: Math.min(item.quantity + desiredQty, product.stock || item.quantity + desiredQty) }
+            : item
+        );
+      }
+      return [...prev, { ...product, quantity: desiredQty }];
+    });
+    setIsCartOpen(true);
+  };
+
+  const handleUpdateCartQty = (id, quantity) => {
+    setCartItems((prev) => {
+      if (quantity <= 0) {
+        return prev.filter((item) => item.id !== id);
+      }
+      return prev.map((item) =>
+        item.id === id
+          ? { ...item, quantity: Math.min(quantity, item.stock || quantity) }
+          : item
+      );
+    });
+  };
+
+  const handleRemoveCartItem = (id) => {
+    setCartItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleOpenCart = () => setIsCartOpen(true);
+  const handleCloseCart = () => setIsCartOpen(false);
+
+  const handleProceedCheckout = () => {
+    if (cartItems.length > 0) {
+      setIsCartOpen(false);
+      setActiveTab('checkout');
+    }
+  };
+
+  const handleCompleteOrder = (order) => {
+    setOrderData(order);
+    setCartItems([]);
+    setIsCartOpen(false);
+    setActiveTab('order-success');
+  };
+
   // Handlers for Product Detail View
   const handleViewProduct = (product) => {
     setSelectedProduct(product);
@@ -141,92 +125,58 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Handlers for Checkout & WhatsApp Order Complete
-  const handleOrderComplete = (orderData) => {
-    setLastOrderData(orderData);
-    setCart([]); // Clear cart after order
-    setActiveTab('order-success');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-black">
+    <div className="min-h-screen flex flex-col bg-white text-[#111827] font-sans selection:bg-[#16A34A] selection:text-white">
       
       {/* Header Navigation */}
       <Header
-        cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
-        wishlistCount={wishlist.length}
-        onOpenCart={() => setCartOpen(true)}
-        onOpenWishlist={() => { setActiveTab('shop'); setSearchQuery(''); }}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        selectedBrand={selectedBrand}
+        onSelectBrand={setSelectedBrand}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         user={user}
+        cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+        onOpenCart={handleOpenCart}
         onOpenAuth={() => setActiveTab('auth')}
       />
 
-      {/* Main View Renderer */}
+      {/* Main View Router */}
       <main className="flex-1">
         {activeTab === 'home' && (
           <HomePage
             products={products}
-            onAddToCart={handleAddToCart}
             onViewDetails={handleViewProduct}
-            wishlist={wishlist}
-            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
+            selectedBrand={selectedBrand}
+            onSelectBrand={setSelectedBrand}
+            activeTab={activeTab}
             onNavigate={(tab) => { setActiveTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
           />
         )}
 
         {activeTab === 'shop' && (
           <ShopPage
             products={products}
-            onAddToCart={handleAddToCart}
             onViewDetails={handleViewProduct}
-            wishlist={wishlist}
-            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            initialConditionFilter="All"
-          />
-        )}
-
-        {activeTab === 'refurbished' && (
-          <ShopPage
-            products={products}
-            onAddToCart={handleAddToCart}
-            onViewDetails={handleViewProduct}
-            wishlist={wishlist}
-            onToggleWishlist={handleToggleWishlist}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            initialConditionFilter="Like New"
+            selectedBrand={selectedBrand}
+            setSelectedBrand={setSelectedBrand}
           />
         )}
 
         {activeTab === 'product-detail' && (
           <ProductDetailPage
             product={selectedProduct}
+            allProducts={products}
             onBack={() => setActiveTab('shop')}
+            onViewDetails={handleViewProduct}
             onAddToCart={handleAddToCart}
-            isWishlisted={wishlist.some(item => item.id === selectedProduct?.id)}
-            onToggleWishlist={handleToggleWishlist}
-          />
-        )}
-
-        {activeTab === 'checkout' && (
-          <CheckoutPage
-            cartItems={cart}
-            onBack={() => setCartOpen(true)}
-            onCompleteOrder={handleOrderComplete}
-          />
-        )}
-
-        {activeTab === 'order-success' && (
-          <OrderSuccessPage
-            orderData={lastOrderData}
-            onBackToShop={() => setActiveTab('shop')}
           />
         )}
 
@@ -243,6 +193,21 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'checkout' && (
+          <CheckoutPage
+            cartItems={cartItems}
+            onBack={() => setActiveTab('shop')}
+            onCompleteOrder={handleCompleteOrder}
+          />
+        )}
+
+        {activeTab === 'order-success' && (
+          <OrderSuccessPage
+            orderData={orderData}
+            onBackToShop={() => setActiveTab('shop')}
+          />
+        )}
+
         {activeTab === 'auth' && (
           <AuthPages
             onLoginSuccess={(userData) => {
@@ -254,21 +219,16 @@ export default function App() {
         )}
       </main>
 
-      {/* Slide-out Cart Drawer */}
       <CartDrawer
-        isOpen={cartOpen}
-        onClose={() => setCartOpen(false)}
-        cartItems={cart}
+        isOpen={isCartOpen}
+        onClose={handleCloseCart}
+        cartItems={cartItems}
         onUpdateQty={handleUpdateCartQty}
         onRemoveItem={handleRemoveCartItem}
-        onProceedCheckout={() => {
-          setCartOpen(false);
-          setActiveTab('checkout');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onProceedCheckout={handleProceedCheckout}
       />
 
-      {/* Floating & Sticky WhatsApp/Call Buttons */}
+      {/* Floating Action Controls */}
       <FloatingContact />
 
       {/* Policy Modal Overlay */}
@@ -280,7 +240,18 @@ export default function App() {
       )}
 
       {/* Footer */}
-      <Footer onOpenPolicy={(policyName) => setActivePolicy(policyName)} />
+      <Footer
+        onOpenPolicy={(policyName) => setActivePolicy(policyName)}
+        onSelectBrand={(brand) => {
+          setSelectedBrand(brand);
+          setActiveTab('shop');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onNavigate={(tab) => {
+          setActiveTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
 
     </div>
   );
