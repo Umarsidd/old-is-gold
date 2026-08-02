@@ -1,14 +1,10 @@
 @import "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css";
 
 :root {
-  --color-header-bg: #111111;
-  --color-header-text: #FFFFFF;
   --color-bg: #FFFFFF;
-  --color-text-primary: #000000;
-  --color-text-secondary: #333333;
-  --color-realme-yellow: #FFC915;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
   --color-accent-green: #16A34A;
-  --color-border: #D1D5DB;
   --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -23,22 +19,6 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   letter-spacing: -0.02em;
-  color: #000000;
-}
-
-/* Solid Realme Store Cards */
-.card-realme-solid {
-  background-color: #FFFFFF;
-  border: 1px solid #D1D5DB;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: all 0.25s ease-in-out;
-}
-
-.card-realme-solid:hover {
-  transform: translateY(-4px);
-  border-color: #000000;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
 }
 
 /* Custom Scrollbar */
@@ -52,4 +32,38 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb {
   background: #000000;
   border-radius: 9999px;
+}
+
+/* Specific utilities for redesign */
+.hero-text-shadow {
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.hero-overlay {
+  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.45));
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.solid-nav {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.card-realme-solid {
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.25s ease-in-out;
+}
+
+.card-realme-solid:hover {
+  transform: translateY(-4px);
+  border-color: #000000;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
 }

@@ -63,98 +63,56 @@ export default function HomePage({
   return (
     <div className="space-y-16 pb-20 bg-white text-black">
       
-      {/* 100% Solid Opaque Hero Banner */}
-      <section className="bg-[#F8F9FA] py-12 md:py-20 border-b border-gray-300">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
-          {/* Left Side Column */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-black text-white px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-widest">
-              <Sparkles className="w-3.5 h-3.5 text-[#FFC915]" />
-              <span>Official Mobile Showroom</span>
-            </div>
+      {/* Premium Hero Banner (Starts Here) */}
+      <section className="relative w-full overflow-hidden flex items-center justify-center" style={{ minHeight: '650px' }}>
+        {/* Background Image Layer */}
+        <div 
+          className="absolute inset-0 w-full h-full"
+          style={{
+            backgroundImage: 'url("https://images.unsplash.com/photo-1616348436168-de43ad0db179?auto=format&fit=crop&w=1920&q=80")',
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            filter: 'brightness(0.65) saturate(0.9)'
+          }}
+        />
+        {/* Gradient Overlay Layer */}
+        <div className="absolute inset-0 w-full h-full hero-overlay z-10" />
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-black tracking-tight leading-none">
-              Find Your Next <br />
-              <span className="text-[#16A34A]">Smartphone</span>
-            </h1>
-
-            <p className="text-black text-sm md:text-base max-w-xl mx-auto lg:mx-0 leading-relaxed font-extrabold">
-              100% Genuine Verified Mobile Stock across Apple, Samsung, OPPO, Vivo, Realme, OnePlus & more. Direct WhatsApp price inquiries with Umar Khan.
-            </p>
-
-            {/* Solid White Search Box with High-Contrast Text */}
-            <div className="bg-white p-2 rounded-2xl border border-gray-400 flex flex-col sm:flex-row items-center gap-2 max-w-lg mx-auto lg:mx-0 shadow-md">
-              <div className="relative flex-1 w-full">
-                <input
-                  type="text"
-                  placeholder="Search by Brand or Model (e.g. S21 FE, iPhone 16...)"
-                  value={heroSearch}
-                  onChange={(e) => setHeroSearch(e.target.value)}
-                  className="w-full bg-white text-black placeholder-gray-600 text-xs font-black pl-10 pr-4 py-3 focus:outline-none"
-                />
-                <Search className="w-4 h-4 text-black absolute left-3.5 top-3.5" />
-              </div>
-              <button
-                onClick={() => onNavigate('shop')}
-                className="w-full sm:w-auto bg-[#16A34A] hover:bg-emerald-700 text-white font-black text-xs px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow transition"
-              >
-                <span>Shop Now</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
-              <button
-                onClick={() => onNavigate('shop')}
-                className="bg-black text-white hover:bg-gray-800 font-black text-xs px-6 py-3.5 rounded-xl flex items-center gap-2 shadow transition"
-              >
-                <span>Shop Store Catalog</span>
-                <ChevronRight className="w-4 h-4 text-[#FFC915]" />
-              </button>
-
-              <button
-                onClick={() => onNavigate('shop')}
-                className="bg-white text-black hover:bg-gray-100 font-black text-xs px-6 py-3.5 rounded-xl border border-gray-400 flex items-center gap-2 transition"
-              >
-                <Layers className="w-4 h-4 text-[#16A34A]" />
-                <span>Browse Categories</span>
-              </button>
-            </div>
+        {/* Hero Content Layer */}
+        <div className="relative z-20 max-w-7xl mx-auto px-4 w-full flex flex-col items-center text-center py-24">
+          <div className="inline-flex items-center gap-2 bg-black/40 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-6 border border-white/20 shadow-sm">
+            <Sparkles className="w-4 h-4 text-[#FFC915]" />
+            <span>Official Mobile Showroom</span>
           </div>
 
-          {/* Right Side: Solid Showroom Card */}
-          <div className="lg:col-span-5 flex justify-center">
-            <div className="card-realme-solid p-8 rounded-2xl bg-white border border-gray-300 text-center space-y-6 max-w-sm w-full shadow-lg">
-              <img 
-                src={STORE_INFO.logo} 
-                alt={STORE_INFO.name} 
-                className="w-24 h-24 mx-auto rounded-xl object-cover border-2 border-black shadow-md"
-                onError={(e) => {
-                  e.target.src = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80";
-                }}
-              />
+          <h1 className="hero-text-shadow text-white leading-tight mb-6 m-0 p-0" style={{ fontSize: '72px', fontWeight: 800 }}>
+            Find Your Next <br /> Smartphone
+          </h1>
 
-              <div>
-                <h3 className="text-2xl font-black text-black">{STORE_INFO.name}</h3>
-                <p className="text-xs font-black text-[#16A34A] uppercase tracking-widest mt-1">Official Mobile Showroom</p>
-              </div>
+          <p className="max-w-2xl mx-auto leading-relaxed mb-10 m-0 p-0 font-medium" style={{ fontSize: '18px', color: 'rgba(255,255,255,0.92)' }}>
+            100% Genuine Verified Mobile Stock across Apple, Samsung, OPPO, Vivo, Realme, OnePlus & more. Direct WhatsApp price inquiries with Umar Khan.
+          </p>
 
-              <div className="bg-[#F8F9FA] p-4 rounded-xl text-left space-y-2 text-xs text-black border border-gray-300 font-bold">
-                <p>Owner: <strong className="text-black font-black">{STORE_INFO.owner}</strong></p>
-                <p>Location: <strong className="text-black">Girls College Road, Balrampur</strong></p>
-                <p>Helpline: <strong className="text-[#16A34A] font-black">{STORE_INFO.phone}</strong></p>
-              </div>
-
-              <div className="flex items-center justify-center gap-1 text-amber-500 text-xs font-black">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-current" />
-                ))}
-                <span className="ml-1 text-black font-black">4.9 / 5 Store Rating</span>
-              </div>
-            </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto">
+            <button
+              onClick={() => onNavigate('shop')}
+              className="w-full bg-[#16A34A] hover:bg-emerald-700 text-white transition rounded-xl flex items-center justify-center gap-2 shadow-lg"
+              style={{ height: '56px', fontSize: '16px', fontWeight: 700 }}
+            >
+              <span>Explore Catalog</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+            <a
+              href={directWhatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 transition rounded-xl flex items-center justify-center gap-2 shadow-lg"
+              style={{ height: '56px', fontSize: '16px', fontWeight: 700 }}
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span>WhatsApp Us</span>
+            </a>
           </div>
-
         </div>
       </section>
 
