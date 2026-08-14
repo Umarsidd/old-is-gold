@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { STORE_INFO } from '../data/storeInfo';
+import { api } from '../services/api';
 import { ShoppingCart, MessageSquare, ArrowLeft, ShieldCheck, CheckCircle2, User, Phone, MapPin, FileText } from 'lucide-react';
 
 export default function CheckoutPage({ cartItems, onBack, onCompleteOrder }) {
@@ -94,14 +95,8 @@ Thank You.
       whatsappRedirectUrl
     };
 
-    // Save order in LocalStorage
-    try {
-      const existingOrders = JSON.parse(localStorage.getItem('old_is_gold_orders') || '[]');
-      existingOrders.unshift(orderData);
-      localStorage.setItem('old_is_gold_orders', JSON.stringify(existingOrders));
-    } catch (err) {
-      console.error("LocalStorage save error", err);
-    }
+    // Save order in MongoDB Atlas
+    api.createOrder(orderData).catch(err => console.error("MongoDB order save error:", err));
 
     // Callback to parent App state
     onCompleteOrder(orderData);

@@ -10,22 +10,12 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
 import PolicyPages from './pages/PolicyPages';
 import { INITIAL_PRODUCTS } from './data/initialProducts';
-
-// ─── Check if admin is authenticated ──────────────────────────────────────────
-function isAdminAuthenticated() {
-  return sessionStorage.getItem('admin_authenticated') === 'true';
-}
+import { api, isAdminAuthenticated } from './services/api';
 
 export default function App() {
-  // Products State with LocalStorage persistence
-  const [products, setProducts] = useState(() => {
-    try {
-      const saved = localStorage.getItem('mobile_hub_products');
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-    } catch {
-      return INITIAL_PRODUCTS;
-    }
-  });
+  // Products State initialized from API / fallback to initial static array
+  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   // Navigation & Filter States
   const [activeTab, setActiveTab] = useState('home');
@@ -34,14 +24,27 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activePolicy, setActivePolicy] = useState(null);
 
-  // Sync products to LocalStorage on change
-  useEffect(() => {
+  // Fetch products & seed database if empty on load
+  const loadProducts = async () => {
     try {
-      localStorage.setItem('mobile_hub_products', JSON.stringify(products));
+      let data = await api.getProducts();
+      if (!data || data.length === 0) {
+        await api.seedDatabase();
+        data = await api.getProducts();
+      }
+      if (data && data.length > 0) {
+        setProducts(data);
+      }
     } catch (e) {
-      console.error('Products sync error', e);
+      console.warn('API connection offline or loading fallback:', e.message);
+    } finally {
+      setLoadingProducts(false);
     }
-  }, [products]);
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
   // ─── Hash-based hidden admin routing ────────────────────────────────────────
   useEffect(() => {
@@ -72,23 +75,23 @@ export default function App() {
 
   const handleUpdateProduct = (updatedProduct) => {
     setProducts((prev) =>
-      prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      prev.map((p) => (p.id === updatedProduct.id || p._id === updatedProduct._id ? updatedProduct : p))
     );
   };
 
   const handleDeleteProduct = (id) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setProducts((prev) => prev.filter((p) => p.id !== id && p._id !== id));
   };
 
   // ─── Admin Auth Handlers ─────────────────────────────────────────────────────
   const handleAdminLoginSuccess = () => {
     setActiveTab('admin');
     window.location.hash = '#admin';
+    loadProducts();
   };
 
   const handleAdminLogout = () => {
-    sessionStorage.removeItem('admin_authenticated');
-    sessionStorage.removeItem('admin_user');
+    api.logout();
     setActiveTab('home');
     window.location.hash = '';
   };

@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Eye, EyeOff, Lock } from 'lucide-react';
 import { STORE_INFO } from '../data/storeInfo';
-
-// ─── Hardcoded Admin Credentials (hidden page, no public access) ──────────────
-const ADMIN_USERNAME = 'Umarkhan24';
-const ADMIN_PASSWORD = 'Gold@24carrot';
+import { api } from '../services/api';
 
 export default function AdminLogin({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -13,23 +10,23 @@ export default function AdminLogin({ onLoginSuccess }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Simulate slight delay for security feel
-    setTimeout(() => {
-      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Store session securely in sessionStorage (cleared on tab close)
-        sessionStorage.setItem('admin_authenticated', 'true');
-        sessionStorage.setItem('admin_user', ADMIN_USERNAME);
+    try {
+      const res = await api.login(username, password);
+      if (res && res.success) {
         onLoginSuccess();
       } else {
-        setError('Invalid username or password.');
+        setError(res.error || 'Invalid username or password.');
       }
+    } catch (err) {
+      setError(err.message || 'Login failed. Please check server connection.');
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   };
 
   return (

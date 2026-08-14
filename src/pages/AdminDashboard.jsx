@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { STORE_INFO } from '../data/storeInfo';
 import { BRANDS_LIST } from '../data/initialProducts';
+import { api } from '../services/api';
 import {
   ShieldCheck,
   Plus,
@@ -18,19 +19,28 @@ import {
   ChevronRight,
   Search,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  ShoppingBag,
+  Settings as SettingsIcon,
+  RefreshCw,
+  CheckCircle
 } from 'lucide-react';
 
 export default function AdminDashboard({
-  products,
+  products: initialProducts,
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
   onLogout
 }) {
+  const [products, setProducts] = useState(initialProducts || []);
+  const [orders, setOrders] = useState([]);
+  const [settings, setSettings] = useState(STORE_INFO);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -47,6 +57,33 @@ export default function AdminDashboard({
     specs: ''
   });
 
+  const showNotification = (text, type = 'success') => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage({ text: '', type: '' }), 4000);
+  };
+
+  const refreshData = async () => {
+    setLoading(true);
+    try {
+      const [fetchedProducts, fetchedOrders, fetchedSettings] = await Promise.all([
+        api.getProducts(),
+        api.getOrders().catch(() => []),
+        api.getSettings().catch(() => STORE_INFO)
+      ]);
+      setProducts(fetchedProducts || []);
+      setOrders(fetchedOrders || []);
+      if (fetchedSettings) setSettings(fetchedSettings);
+    } catch (err) {
+      console.error('Failed to refresh data from server:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshData();
+  }, []);
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -58,31 +95,42 @@ export default function AdminDashboard({
     }
   };
 
-  const handleSubmitForm = (e) => {
+  const handleSubmitForm = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.brand) return;
 
-    const productPayload = {
-      ...formData,
-      id: editingProduct ? editingProduct.id : 'prod-' + Date.now(),
-      model: formData.model || formData.name,
-      stock: Number(formData.stock),
-      image: formData.image || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80'
-    };
+    setLoading(true);
+    try {
+      const productPayload = {
+        ...formData,
+        model: formData.model || formData.name,
+        stock: Number(formData.stock),
+        image: formData.image || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80'
+      };
 
-    if (editingProduct) {
-      onUpdateProduct(productPayload);
-    } else {
-      onAddProduct(productPayload);
+      if (editingProduct) {
+        const updated = await api.updateProduct(editingProduct.id, productPayload);
+        onUpdateProduct(updated);
+        showNotification('Product updated successfully in MongoDB Atlas');
+      } else {
+        const created = await api.createProduct(productPayload);
+        onAddProduct(created);
+        showNotification('New product saved to MongoDB Atlas');
+      }
+
+      await refreshData();
+      setEditingProduct(null);
+      setFormData({
+        name: '', brand: 'Apple', model: '', price: '', category: 'Apple',
+        stock: 1, isSold: false, isHidden: false, isFeatured: true,
+        image: '', description: '', specs: ''
+      });
+      setActiveTab('products');
+    } catch (err) {
+      showNotification(err.message || 'Failed to save product to MongoDB', 'error');
+    } finally {
+      setLoading(false);
     }
-
-    setEditingProduct(null);
-    setFormData({
-      name: '', brand: 'Apple', model: '', price: '', category: 'Apple',
-      stock: 1, isSold: false, isHidden: false, isFeatured: true,
-      image: '', description: '', specs: ''
-    });
-    setActiveTab('products');
   };
 
   const handleStartEdit = (product) => {
@@ -91,9 +139,55 @@ export default function AdminDashboard({
     setActiveTab('add');
   };
 
-  const handleDeleteConfirm = (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      onDeleteProduct(id);
+  const handleDeleteConfirm = async (id) => {
+    if (window.confirm('Are you sure you want to delete this product from MongoDB Atlas?')) {
+      setLoading(true);
+      try {
+        await api.deleteProduct(id);
+        onDeleteProduct(id);
+        await refreshData();
+        showNotification('Product deleted from MongoDB Atlas');
+      } catch (err) {
+        showNotification(err.message || 'Failed to delete product', 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleToggleProduct = async (product, key, value) => {
+    try {
+      const updatedPayload = { ...product, [key]: value };
+      const updated = await api.updateProduct(product.id, updatedPayload);
+      onUpdateProduct(updated);
+      setProducts(prev => prev.map(p => p.id === product.id ? updated : p));
+      showNotification(`Product updated in MongoDB`);
+    } catch (err) {
+      showNotification(err.message || 'Failed to update toggle', 'error');
+    }
+  };
+
+  const handleOrderStatusChange = async (orderId, newStatus) => {
+    try {
+      await api.updateOrderStatus(orderId, newStatus);
+      setOrders(prev => prev.map(o => (o.orderId === orderId || o._id === orderId) ? { ...o, status: newStatus } : o));
+      showNotification(`Order status updated to ${newStatus}`);
+    } catch (err) {
+      showNotification(err.message || 'Failed to update order status', 'error');
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const updated = await api.updateSettings(settings);
+      setSettings(updated);
+      showNotification('Store settings updated in MongoDB Atlas');
+    } catch (err) {
+      showNotification(err.message || 'Failed to update settings', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,14 +197,16 @@ export default function AdminDashboard({
     p.model?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
-  const availableCount = products.filter(p => p.stock > 0 && !p.isSold).length;
+  const totalStock = products.reduce((sum, p) => sum + (Number(p.stock) || 0), 0);
+  const availableCount = products.filter(p => Number(p.stock) > 0 && !p.isSold).length;
   const featuredCount = products.filter(p => p.isFeatured).length;
 
   const navItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'products', icon: Package, label: 'All Products' },
     { id: 'add', icon: Plus, label: editingProduct ? 'Edit Product' : 'Add Product' },
+    { id: 'orders', icon: ShoppingBag, label: `Orders (${orders.length})` },
+    { id: 'settings', icon: SettingsIcon, label: 'Store Settings' },
   ];
 
   return (
@@ -136,7 +232,7 @@ export default function AdminDashboard({
             </div>
             <div>
               <div style={{ color: '#F1F5F9', fontSize: '13px', fontWeight: 700, lineHeight: 1.2 }}>Admin Panel</div>
-              <div style={{ color: '#64748B', fontSize: '11px' }}>{STORE_INFO.name}</div>
+              <div style={{ color: '#64748B', fontSize: '11px' }}>{settings.name || STORE_INFO.name}</div>
             </div>
           </div>
         </div>
@@ -164,8 +260,21 @@ export default function AdminDashboard({
           ))}
         </nav>
 
-        {/* Logout */}
+        {/* Sync Status / Refresh */}
         <div style={{ padding: '12px 10px', borderTop: '1px solid #334155' }}>
+          <button
+            onClick={refreshData}
+            disabled={loading}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              padding: '8px', borderRadius: '8px', border: '1px solid #334155',
+              background: '#0F172A', color: '#94A3B8', fontSize: '12px', cursor: 'pointer', marginBottom: '8px'
+            }}
+          >
+            <RefreshCw style={{ width: '14px', height: '14px', animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            <span>{loading ? 'Syncing...' : 'Sync MongoDB'}</span>
+          </button>
+
           <button
             onClick={onLogout}
             style={{
@@ -185,6 +294,20 @@ export default function AdminDashboard({
       {/* ── Main Content ─────────────────────────────────────────────────────── */}
       <main style={{ flex: 1, padding: '32px', overflowY: 'auto', background: '#0F172A' }}>
 
+        {/* Toast Notification */}
+        {message.text && (
+          <div style={{
+            position: 'fixed', top: '20px', right: '20px', zIndex: 1000,
+            background: message.type === 'error' ? '#EF4444' : '#16A34A',
+            color: '#FFFFFF', padding: '12px 20px', borderRadius: '12px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: '10px',
+            fontSize: '14px', fontWeight: 600
+          }}>
+            <CheckCircle style={{ width: '18px', height: '18px' }} />
+            <span>{message.text}</span>
+          </div>
+        )}
+
         {/* ── Dashboard Tab ─────────────────────────────── */}
         {activeTab === 'dashboard' && (
           <div>
@@ -192,7 +315,7 @@ export default function AdminDashboard({
               Welcome back, Umarkhan 👋
             </h1>
             <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '28px' }}>
-              Here's your store overview for {STORE_INFO.name}
+              Here's your store overview for {settings.name || STORE_INFO.name} (MongoDB Source of Truth)
             </p>
 
             {/* Stats Cards */}
@@ -201,7 +324,7 @@ export default function AdminDashboard({
                 { label: 'Total Products', value: products.length, icon: Package, color: '#3B82F6' },
                 { label: 'Total Stock Units', value: totalStock, icon: BarChart3, color: '#16A34A' },
                 { label: 'Available Now', value: availableCount, icon: TrendingUp, color: '#F59E0B' },
-                { label: 'Featured Items', value: featuredCount, icon: Star, color: '#8B5CF6' },
+                { label: 'Customer Orders', value: orders.length, icon: ShoppingBag, color: '#8B5CF6' },
               ].map(stat => (
                 <div key={stat.label} style={{
                   background: '#1E293B', border: '1px solid #334155',
@@ -223,17 +346,17 @@ export default function AdminDashboard({
             {/* Recent Products */}
             <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: '16px', overflow: 'hidden' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ color: '#F1F5F9', fontSize: '14px', fontWeight: 700, margin: 0 }}>Recent Products</h2>
+                <h2 style={{ color: '#F1F5F9', fontSize: '14px', fontWeight: 700, margin: 0 }}>Recent Inventory in MongoDB Atlas</h2>
                 <button onClick={() => setActiveTab('products')} style={{ color: '#4ADE80', fontSize: '12px', background: 'none', border: 'none', cursor: 'pointer' }}>
                   View All →
                 </button>
               </div>
               <div style={{ padding: '8px' }}>
                 {products.slice(0, 5).map(p => (
-                  <div key={p.id} style={{
+                  <div key={p.id || p._id} style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
                     padding: '10px 12px', borderRadius: '10px',
-                    borderBottom: '1px solid #1E293B'
+                    borderBottom: '1px solid #1a2540'
                   }}>
                     <img src={p.image} alt={p.name}
                       style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px', background: '#0F172A' }}
@@ -243,6 +366,7 @@ export default function AdminDashboard({
                       <div style={{ color: '#F1F5F9', fontSize: '13px', fontWeight: 600 }}>{p.model || p.name}</div>
                       <div style={{ color: '#64748B', fontSize: '11px' }}>{p.brand}</div>
                     </div>
+                    {p.price && <div style={{ color: '#4ADE80', fontSize: '13px', fontWeight: 700 }}>₹{p.price}</div>}
                     <span style={{
                       padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
                       background: (p.stock > 0 && !p.isSold) ? 'rgba(22,163,74,0.15)' : 'rgba(239,68,68,0.15)',
@@ -263,7 +387,7 @@ export default function AdminDashboard({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h1 style={{ color: '#F1F5F9', fontSize: '22px', fontWeight: 700, margin: '0 0 4px' }}>All Products</h1>
-                <p style={{ color: '#64748B', fontSize: '13px', margin: 0 }}>{products.length} products in inventory</p>
+                <p style={{ color: '#64748B', fontSize: '13px', margin: 0 }}>{products.length} products stored in MongoDB Atlas</p>
               </div>
               <button
                 onClick={() => { setEditingProduct(null); setActiveTab('add'); }}
@@ -309,9 +433,9 @@ export default function AdminDashboard({
                   </thead>
                   <tbody>
                     {filteredProducts.map((p) => {
-                      const isAvailable = p.stock > 0 && !p.isSold;
+                      const isAvailable = Number(p.stock) > 0 && !p.isSold;
                       return (
-                        <tr key={p.id} style={{ borderBottom: '1px solid #1a2540', opacity: p.isHidden ? 0.5 : 1 }}>
+                        <tr key={p.id || p._id} style={{ borderBottom: '1px solid #1a2540', opacity: p.isHidden ? 0.5 : 1 }}>
                           <td style={{ padding: '12px 16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                               <img src={p.image} alt={p.name}
@@ -328,7 +452,7 @@ export default function AdminDashboard({
                           <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                             <input
                               type="number" min="0" value={p.stock}
-                              onChange={e => onUpdateProduct({ ...p, stock: Number(e.target.value) })}
+                              onChange={e => handleToggleProduct(p, 'stock', Number(e.target.value))}
                               style={{
                                 width: '60px', background: '#0F172A', border: '1px solid #334155',
                                 borderRadius: '6px', padding: '4px 8px', color: '#F1F5F9',
@@ -351,7 +475,7 @@ export default function AdminDashboard({
                           <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                               <button
-                                onClick={() => onUpdateProduct({ ...p, isFeatured: !p.isFeatured })}
+                                onClick={() => handleToggleProduct(p, 'isFeatured', !p.isFeatured)}
                                 title="Toggle Featured"
                                 style={{
                                   padding: '5px', borderRadius: '6px', border: 'none', cursor: 'pointer',
@@ -362,7 +486,7 @@ export default function AdminDashboard({
                                 <Star style={{ width: '13px', height: '13px' }} />
                               </button>
                               <button
-                                onClick={() => onUpdateProduct({ ...p, isHidden: !p.isHidden })}
+                                onClick={() => handleToggleProduct(p, 'isHidden', !p.isHidden)}
                                 title="Toggle Hide"
                                 style={{
                                   padding: '5px', borderRadius: '6px', border: 'none', cursor: 'pointer',
@@ -417,7 +541,7 @@ export default function AdminDashboard({
                   {editingProduct ? 'Edit Product' : 'Add New Product'}
                 </h1>
                 <p style={{ color: '#64748B', fontSize: '13px', margin: 0 }}>
-                  {editingProduct ? `Editing: ${editingProduct.name}` : 'Add a new phone to your inventory'}
+                  {editingProduct ? `Editing: ${editingProduct.name}` : 'Save directly to MongoDB Atlas'}
                 </p>
               </div>
               {editingProduct && (
@@ -565,16 +689,126 @@ export default function AdminDashboard({
                 {/* Submit */}
                 <button
                   type="submit"
+                  disabled={loading}
                   style={{
-                    width: '100%', background: 'linear-gradient(135deg, #16A34A, #15803d)',
+                    width: '100%', background: loading ? '#15803d' : 'linear-gradient(135deg, #16A34A, #15803d)',
                     color: '#fff', border: 'none', borderRadius: '10px',
-                    padding: '14px', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                    padding: '14px', fontSize: '14px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                     boxShadow: '0 4px 14px rgba(22, 163, 74, 0.3)'
                   }}
                 >
                   <Save style={{ width: '16px', height: '16px' }} />
-                  {editingProduct ? 'Update Product' : 'Save New Product'}
+                  {loading ? 'Saving to MongoDB Atlas...' : (editingProduct ? 'Update Product' : 'Save New Product')}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* ── Orders Tab ──────────────────────────── */}
+        {activeTab === 'orders' && (
+          <div>
+            <h1 style={{ color: '#F1F5F9', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Customer Orders</h1>
+            <p style={{ color: '#64748B', fontSize: '13px', marginBottom: '24px' }}>All orders placed via WhatsApp stored in MongoDB</p>
+
+            {orders.length === 0 ? (
+              <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: '16px', padding: '40px', textAlign: 'center', color: '#94A3B8' }}>
+                No customer orders received yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {orders.map(o => (
+                  <div key={o._id || o.orderId} style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: '16px', padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', pb: '12px', marginBottom: '12px' }}>
+                      <div>
+                        <span style={{ color: '#4ADE80', fontWeight: 700, fontSize: '14px' }}>{o.orderId}</span>
+                        <span style={{ color: '#64748B', fontSize: '12px', marginLeft: '10px' }}>{o.date || new Date(o.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <select
+                        value={o.status || 'Pending'}
+                        onChange={e => handleOrderStatusChange(o.orderId || o._id, e.target.value)}
+                        style={{ background: '#0F172A', color: '#F1F5F9', border: '1px solid #334155', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', outline: 'none' }}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', color: '#CBD5E1', fontSize: '13px' }}>
+                      <div>
+                        <strong>Customer:</strong> {o.customer?.name || o.customerName} ({o.customer?.phone || o.phone})<br />
+                        <strong>Address:</strong> {o.customer?.address || o.address}, {o.customer?.pin}
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <strong>Total:</strong> <span style={{ color: '#4ADE80', fontWeight: 700 }}>₹{o.grandTotal?.toLocaleString('en-IN') || o.total}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Settings Tab ──────────────────────────── */}
+        {activeTab === 'settings' && (
+          <div style={{ maxWidth: '640px' }}>
+            <h1 style={{ color: '#F1F5F9', fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Store Settings</h1>
+            <p style={{ color: '#64748B', fontSize: '13px', marginBottom: '24px' }}>Update WhatsApp number and store info in MongoDB</p>
+
+            <form onSubmit={handleSaveSettings}>
+              <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={labelStyle}>Store Name</label>
+                  <input
+                    type="text" value={settings.name || ''}
+                    onChange={e => setSettings({ ...settings, name: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={labelStyle}>WhatsApp Number (Clean: e.g. 918573929638)</label>
+                    <input
+                      type="text" value={settings.whatsappNumber || ''}
+                      onChange={e => setSettings({ ...settings, whatsappNumber: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Phone Number (Formatted)</label>
+                    <input
+                      type="text" value={settings.phone || ''}
+                      onChange={e => setSettings({ ...settings, phone: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Physical Address</label>
+                  <textarea
+                    rows={2} value={settings.address || ''}
+                    onChange={e => setSettings({ ...settings, address: e.target.value })}
+                    style={{ ...inputStyle, resize: 'vertical' }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: '100%', background: 'linear-gradient(135deg, #16A34A, #15803d)',
+                    color: '#fff', border: 'none', borderRadius: '10px',
+                    padding: '14px', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                  }}
+                >
+                  <Save style={{ width: '16px', height: '16px' }} /> Save Store Settings to MongoDB
                 </button>
               </div>
             </form>
