@@ -6,6 +6,8 @@ import { STORE_INFO } from '../src/data/storeInfo.js';
 
 dotenv.config();
 
+const ADMIN_USERNAME = process.env.INITIAL_ADMIN_USERNAME || 'Umarkhan24';
+
 async function seedDatabase() {
   console.log('🌱 Connecting to MongoDB Atlas for Seeding...');
   const { db, client } = await connectToDatabase();
@@ -14,22 +16,34 @@ async function seedDatabase() {
     // 1. Seed Admin
     console.log('🔑 Checking Admin Account...');
     const adminCollection = db.collection('admins');
-    const existingAdmin = await adminCollection.findOne({ username: 'Umarkhan24' });
+    const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
 
-    if (!existingAdmin) {
-      const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'Admin@2026';
-      const passwordHash = await bcrypt.hash(initialPassword, 10);
-      await adminCollection.insertOne({
-        username: 'Umarkhan24',
-        passwordHash,
-        role: 'superadmin',
-        active: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-      console.log('✅ Created Admin Account: Umarkhan24');
+    if (!initialPassword) {
+      throw new Error('INITIAL_ADMIN_PASSWORD is required to create or reset the admin account.');
+    }
+
+    const passwordHash = await bcrypt.hash(initialPassword, 10);
+    const adminResult = await adminCollection.updateOne(
+      { username: ADMIN_USERNAME },
+      {
+        $set: {
+          passwordHash,
+          role: 'superadmin',
+          active: true,
+          updatedAt: new Date()
+        },
+        $setOnInsert: {
+          username: ADMIN_USERNAME,
+          createdAt: new Date()
+        }
+      },
+      { upsert: true }
+    );
+
+    if (adminResult.upsertedCount > 0) {
+      console.log(`✅ Created Admin Account: ${ADMIN_USERNAME}`);
     } else {
-      console.log('ℹ️ Admin Umarkhan24 already exists');
+      console.log(`✅ Reset Admin Password: ${ADMIN_USERNAME}`);
     }
 
     // 2. Seed Products

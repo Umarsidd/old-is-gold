@@ -11,6 +11,25 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+const ADMIN_USERNAME = process.env.INITIAL_ADMIN_USERNAME || 'Umarkhan24';
+const API_PATH_ROOTS = ['/auth', '/products', '/categories', '/orders', '/settings', '/seed'];
+
+app.use((req, res, next) => {
+  const functionPrefix = '/.netlify/functions/api';
+
+  if (req.url.startsWith(functionPrefix)) {
+    req.url = req.url.slice(functionPrefix.length) || '/';
+  }
+
+  if (!req.url.startsWith('/api') && API_PATH_ROOTS.some(root =>
+    req.url === root || req.url.startsWith(`${root}/`) || req.url.startsWith(`${root}?`)
+  )) {
+    req.url = `/api${req.url}`;
+  }
+
+  next();
+});
+
 // Helper to normalize product format for existing React components
 function normalizeProduct(p) {
   if (!p) return null;
@@ -22,13 +41,22 @@ function normalizeProduct(p) {
   };
 }
 
-// ─── Authentication Middleware ────────────────────────────────────────────────
-const authenticateAdmin = (req, res, next) => {
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    return res.status(500).json({ error: 'Server authentication configuration error: JWT_SECRET missing' });
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function getTokenSecretForAdmin(username) {
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
   }
 
+  const { db } = await connectToDatabase();
+  const admin = await db.collection('admins').findOne({ username });
+  return admin?.passwordHash || null;
+}
+
+// ─── Authentication Middleware ────────────────────────────────────────────────
+const authenticateAdmin = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
@@ -36,7 +64,13 @@ const authenticateAdmin = (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, jwtSecret);
+    const unverified = jwt.decode(token);
+    const tokenSecret = await getTokenSecretForAdmin(unverified?.username);
+    if (!tokenSecret) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
+    }
+
+    const decoded = jwt.verify(token, tokenSecret);
     req.admin = decoded;
     next();
   } catch (err) {
@@ -47,11 +81,6 @@ const authenticateAdmin = (req, res, next) => {
 // ─── AUTH ENDPOINTS ──────────────────────────────────────────────────────────
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      return res.status(500).json({ error: 'Server authentication configuration error: JWT_SECRET missing' });
-    }
-
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
@@ -67,7 +96,7 @@ app.post('/api/auth/login', async (req, res) => {
     const admin = await db.collection('admins').findOne({
       $or: [
         { username: cleanUsername },
-        { username: { $regex: new RegExp(`^${cleanUsername}$`, 'i') } }
+        { username: { $regex: new RegExp(`^${escapeRegExp(cleanUsername)}$`, 'i') } }
       ]
     });
 
@@ -83,9 +112,10 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
+    const tokenSecret = process.env.JWT_SECRET || adminUser.passwordHash;
     const token = jwt.sign(
       { username: adminUser.username, role: adminUser.role || 'admin' },
-      jwtSecret,
+      tokenSecret,
       { expiresIn: '7d' }
     );
 
@@ -373,17 +403,27 @@ app.post('/api/seed', async (req, res) => {
     const { db } = await connectToDatabase();
 
     // 1. Seed Admin
-    const adminsCount = await db.collection('admins').countDocuments();
-    if (adminsCount === 0) {
-      const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'Admin@2026';
+    const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
+    if (initialPassword) {
       const passwordHash = await bcrypt.hash(initialPassword, 10);
-      await db.collection('admins').insertOne({
-        username: 'Umarkhan24',
-        passwordHash,
-        role: 'superadmin',
-        active: true,
-        createdAt: new Date()
-      });
+      await db.collection('admins').updateOne(
+        { username: ADMIN_USERNAME },
+        {
+          $set: {
+            passwordHash,
+            role: 'superadmin',
+            active: true,
+            updatedAt: new Date()
+          },
+          $setOnInsert: {
+            username: ADMIN_USERNAME,
+            createdAt: new Date()
+          }
+        },
+        { upsert: true }
+      );
+    } else {
+      console.warn('INITIAL_ADMIN_PASSWORD missing; admin seed skipped.');
     }
 
     // 2. Seed Products
