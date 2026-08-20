@@ -41,6 +41,7 @@ export default function AdminDashboard({
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -210,16 +211,18 @@ export default function AdminDashboard({
   ];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0F172A', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+    <div className="relative min-h-screen bg-[#0F172A]" style={{ display: 'flex', fontFamily: 'Inter, -apple-system, sans-serif' }}>
       
+      {/* Mobile Drawer Overlay */}
+      {mobileSidebarOpen && (
+        <div 
+          onClick={() => setMobileSidebarOpen(false)}
+          className="admin-overlay"
+        />
+      )}
+
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <aside style={{
-        width: '240px', flexShrink: 0,
-        background: '#1E293B',
-        borderRight: '1px solid #334155',
-        display: 'flex', flexDirection: 'column',
-        position: 'sticky', top: 0, height: '100vh'
-      }}>
+      <aside className={`admin-sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
         {/* Logo */}
         <div style={{ padding: '24px 20px', borderBottom: '1px solid #334155' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -292,7 +295,27 @@ export default function AdminDashboard({
       </aside>
 
       {/* ── Main Content ─────────────────────────────────────────────────────── */}
-      <main style={{ flex: 1, padding: '32px', overflowY: 'auto', background: '#0F172A' }}>
+      <main className="admin-main" style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+
+        {/* Mobile Header Bar */}
+        <div className="lg:hidden flex items-center justify-between pb-6 mb-6 border-b border-[#334155]">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="p-2 rounded-lg bg-[#1E293B] text-gray-300 border border-[#334155]"
+            >
+              <LayoutDashboard className="w-5 h-5 text-emerald-400" />
+            </button>
+            <span className="font-bold text-white text-sm">Admin Dashboard</span>
+          </div>
+          <button
+            onClick={refreshData}
+            disabled={loading}
+            className="p-2 rounded-lg bg-[#1E293B] text-gray-400 border border-[#334155]"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
 
         {/* Toast Notification */}
         {message.text && (

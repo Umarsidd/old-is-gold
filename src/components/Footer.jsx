@@ -77,9 +77,13 @@ export default function Footer({ onOpenPolicy }) {
 
           <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-400 font-medium">
             {['Apple', 'Samsung', 'OPPO', 'Vivo', 'Realme', 'OnePlus', 'Redmi', 'Google Pixel'].map((brand) => (
-              <span key={brand} className="hover:text-[#FFC915] cursor-pointer transition">
+              <a
+                key={brand}
+                href="#shop"
+                className="hover:text-[#FFC915] cursor-pointer transition text-left bg-transparent border-none p-0 inline-block"
+              >
                 {brand}
-              </span>
+              </a>
             ))}
           </div>
         </div>

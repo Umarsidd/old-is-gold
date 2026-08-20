@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { STORE_INFO } from '../data/storeInfo';
 import ProductCard from '../components/ProductCard';
+import HeroSlideshow from '../components/HeroSlideshow';
 import { 
   Smartphone, 
   ShieldCheck, 
@@ -63,58 +64,8 @@ export default function HomePage({
   return (
     <div className="space-y-16 pb-20 bg-white text-black">
       
-      {/* Premium Hero Banner (Starts Here) */}
-      <section className="relative w-full overflow-hidden flex items-center justify-center" style={{ minHeight: '650px' }}>
-        {/* Background Image Layer */}
-        <div 
-          className="absolute inset-0 w-full h-full"
-          style={{
-            backgroundImage: 'url("https://images.unsplash.com/photo-1616348436168-de43ad0db179?auto=format&fit=crop&w=1920&q=80")',
-            backgroundPosition: 'center',
-            backgroundSize: 'cover',
-            filter: 'brightness(0.65) saturate(0.9)'
-          }}
-        />
-        {/* Gradient Overlay Layer */}
-        <div className="absolute inset-0 w-full h-full hero-overlay z-10" />
-
-        {/* Hero Content Layer */}
-        <div className="relative z-20 max-w-7xl mx-auto px-4 w-full flex flex-col items-center text-center py-24">
-          <div className="inline-flex items-center gap-2 bg-black/40 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-6 border border-white/20 shadow-sm">
-            <Sparkles className="w-4 h-4 text-[#FFC915]" />
-            <span>Official Mobile Showroom</span>
-          </div>
-
-          <h1 className="hero-text-shadow text-white leading-tight mb-6 m-0 p-0" style={{ fontSize: '72px', fontWeight: 800 }}>
-            Find Your Next <br /> Smartphone
-          </h1>
-
-          <p className="max-w-2xl mx-auto leading-relaxed mb-10 m-0 p-0 font-medium" style={{ fontSize: '18px', color: 'rgba(255,255,255,0.92)' }}>
-            100% Genuine Verified Mobile Stock across Apple, Samsung, OPPO, Vivo, Realme, OnePlus & more. Direct WhatsApp price inquiries with Umar Khan.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mx-auto">
-            <button
-              onClick={() => onNavigate('shop')}
-              className="w-full bg-[#16A34A] hover:bg-emerald-700 text-white transition rounded-xl flex items-center justify-center gap-2 shadow-lg"
-              style={{ height: '56px', fontSize: '16px', fontWeight: 700 }}
-            >
-              <span>Explore Catalog</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <a
-              href={directWhatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 transition rounded-xl flex items-center justify-center gap-2 shadow-lg"
-              style={{ height: '56px', fontSize: '16px', fontWeight: 700 }}
-            >
-              <MessageSquare className="w-5 h-5" />
-              <span>WhatsApp Us</span>
-            </a>
-          </div>
-        </div>
-      </section>
+      {/* Premium Hero Slideshow */}
+      <HeroSlideshow onNavigate={onNavigate} />
 
       {/* Showroom Statistics */}
       <section className="max-w-7xl mx-auto px-4">
