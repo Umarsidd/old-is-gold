@@ -7,7 +7,6 @@ import { INITIAL_PRODUCTS, CATEGORIES_TREE } from '../../src/data/initialProduct
 import { STORE_INFO } from '../../src/data/storeInfo.js';
 
 const app = express();
-const JWT_SECRET = process.env.JWT_SECRET || 'oldisgold_super_secret_jwt_key_2026_balrampur';
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -25,6 +24,11 @@ function normalizeProduct(p) {
 
 // ─── Authentication Middleware ────────────────────────────────────────────────
 const authenticateAdmin = (req, res, next) => {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return res.status(500).json({ error: 'Server authentication configuration error: JWT_SECRET missing' });
+  }
+
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
@@ -32,7 +36,7 @@ const authenticateAdmin = (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, jwtSecret);
     req.admin = decoded;
     next();
   } catch (err) {
@@ -43,6 +47,11 @@ const authenticateAdmin = (req, res, next) => {
 // ─── AUTH ENDPOINTS ──────────────────────────────────────────────────────────
 app.post('/api/auth/login', async (req, res) => {
   try {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return res.status(500).json({ error: 'Server authentication configuration error: JWT_SECRET missing' });
+    }
+
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
@@ -51,49 +60,23 @@ app.post('/api/auth/login', async (req, res) => {
     const cleanUsername = (username || '').trim();
     const cleanPassword = (password || '').trim();
 
-    // Check default master credentials fallback
-    const isDefaultAdmin = (
-      (cleanUsername.toLowerCase() === 'umarkhan24' || cleanUsername.toLowerCase() === 'oldisgold') &&
-      (cleanPassword === 'Gold@24carrot' || cleanPassword === 'Gold24Carrot@' || cleanPassword === 'Gold24Carrot')
-    );
-
     let authenticated = false;
     let adminUser = null;
 
-    try {
-      const { db } = await connectToDatabase();
-      const admin = await db.collection('admins').findOne({
-        $or: [
-          { username: cleanUsername },
-          { username: 'Umarkhan24' }
-        ]
-      });
+    const { db } = await connectToDatabase();
+    const admin = await db.collection('admins').findOne({
+      $or: [
+        { username: cleanUsername },
+        { username: { $regex: new RegExp(`^${cleanUsername}$`, 'i') } }
+      ]
+    });
 
-      if (admin) {
-        const passwordValid = await bcrypt.compare(cleanPassword, admin.passwordHash);
-        if (passwordValid) {
-          authenticated = true;
-          adminUser = admin;
-        }
+    if (admin) {
+      const passwordValid = await bcrypt.compare(cleanPassword, admin.passwordHash);
+      if (passwordValid) {
+        authenticated = true;
+        adminUser = admin;
       }
-    } catch (dbErr) {
-      console.warn('MongoDB connection during login notice:', dbErr.message);
-    }
-
-    // Fallback if DB isn't seeded yet or DB connection error
-    if (!authenticated && isDefaultAdmin) {
-      authenticated = true;
-      adminUser = { username: cleanUsername, role: 'superadmin' };
-
-      // Try auto-seeding admin in background if DB is accessible
-      connectToDatabase().then(async ({ db }) => {
-        const hash = await bcrypt.hash(cleanPassword, 10);
-        await db.collection('admins').updateOne(
-          { username: 'Umarkhan24' },
-          { $set: { username: 'Umarkhan24', passwordHash: hash, role: 'superadmin', active: true, updatedAt: new Date() } },
-          { upsert: true }
-        );
-      }).catch(() => {});
     }
 
     if (!authenticated) {
@@ -102,7 +85,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     const token = jwt.sign(
       { username: adminUser.username, role: adminUser.role || 'admin' },
-      JWT_SECRET,
+      jwtSecret,
       { expiresIn: '7d' }
     );
 
@@ -392,7 +375,8 @@ app.post('/api/seed', async (req, res) => {
     // 1. Seed Admin
     const adminsCount = await db.collection('admins').countDocuments();
     if (adminsCount === 0) {
-      const passwordHash = await bcrypt.hash('Gold@24carrot', 10);
+      const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'Admin@2026';
+      const passwordHash = await bcrypt.hash(initialPassword, 10);
       await db.collection('admins').insertOne({
         username: 'Umarkhan24',
         passwordHash,

@@ -10,23 +10,26 @@ try {
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://oldisgold:Gold24Carrot%40@cluster0.cyacwtv.mongodb.net/oldisgold?retryWrites=true&w=majority';
 const DB_NAME = process.env.DB_NAME || 'oldisgold';
 
 let cachedClient = null;
 let cachedDb = null;
 
 export async function connectToDatabase() {
+  const mongodbUri = process.env.MONGODB_URI;
+  if (!mongodbUri) {
+    throw new Error('MONGODB_URI environment variable is missing.');
+  }
+
   if (cachedClient && cachedDb) {
     return { client: cachedClient, db: cachedDb };
   }
 
   try {
-    const client = new MongoClient(MONGODB_URI, {
+    const client = new MongoClient(mongodbUri, {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 10000,
       tls: true,
-      tlsAllowInvalidCertificates: true,
     });
     
     await client.connect();

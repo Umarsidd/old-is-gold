@@ -51,34 +51,15 @@ async function apiFetch(endpoint, options = {}) {
 
 export const api = {
   async login(username, password) {
-    try {
-      const result = await apiFetch('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ username, password }),
-      });
-      if (result && result.success && result.token) {
-        setAuthToken(result.token);
-        return result;
-      }
-    } catch (err) {
-      console.warn('Server API login attempt notice:', err.message);
-      // Resilient fallback for master admin credentials
-      const cleanUser = (username || '').trim();
-      const cleanPass = (password || '').trim();
-      if (
-        (cleanUser.toLowerCase() === 'umarkhan24' || cleanUser.toLowerCase() === 'oldisgold') &&
-        (cleanPass === 'Gold@24carrot' || cleanPass === 'Gold24Carrot@' || cleanPass === 'Gold24Carrot')
-      ) {
-        const dummyToken = 'oig_master_token_' + Date.now();
-        setAuthToken(dummyToken);
-        return {
-          success: true,
-          token: dummyToken,
-          user: { username: cleanUser, role: 'superadmin' }
-        };
-      }
-      throw err;
+    const result = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    if (result && result.success && result.token) {
+      setAuthToken(result.token);
+      return result;
     }
+    throw new Error((result && result.error) || 'Login failed');
   },
 
   logout() {

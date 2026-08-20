@@ -17,7 +17,8 @@ async function seedDatabase() {
     const existingAdmin = await adminCollection.findOne({ username: 'Umarkhan24' });
 
     if (!existingAdmin) {
-      const passwordHash = await bcrypt.hash('Gold@24carrot', 10);
+      const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'Admin@2026';
+      const passwordHash = await bcrypt.hash(initialPassword, 10);
       await adminCollection.insertOne({
         username: 'Umarkhan24',
         passwordHash,
